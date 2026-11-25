@@ -32,6 +32,15 @@ vi.mock("@/core/storage/StateManager", () => ({
 					mockSecrets.set(key, value)
 				}
 			},
+			setSecretsBatch: (updates: Record<string, string | undefined>) => {
+				for (const [key, value] of Object.entries(updates)) {
+					if (value === undefined) {
+						mockSecrets.delete(key)
+					} else {
+						mockSecrets.set(key, value)
+					}
+				}
+			},
 			getGlobalSettingsKey: () => "act",
 			setGlobalState: vi.fn(),
 		}),
@@ -369,6 +378,8 @@ describe("AuthService", () => {
 				provider: "cline",
 				auth: { accessToken: "workos:test-access-token", refreshToken: "test-refresh-token", accountId: "user-123" },
 			})
+			mockSecrets.set("clineApiKey", "workos:stale-access-token")
+			mockSecrets.set("clineAccountId", "stale-account")
 
 			await authService.handleDeauth(LogoutReason.USER_INITIATED)
 
@@ -378,6 +389,8 @@ describe("AuthService", () => {
 
 			// Persisted credentials should be cleared from providers.json.
 			expect(mockProviderSettings.get("cline")?.auth).toBeUndefined()
+			expect(mockSecrets.get("clineApiKey")).toBeUndefined()
+			expect(mockSecrets.get("clineAccountId")).toBeUndefined()
 		})
 	})
 

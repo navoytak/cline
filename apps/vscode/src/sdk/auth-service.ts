@@ -175,6 +175,15 @@ function clearClineCredentials(): void {
 	} catch (error) {
 		Logger.error("[SdkAuthService] Failed to clear credentials from providers.json:", error)
 	}
+
+	try {
+		StateManager.get().setSecretsBatch({
+			clineApiKey: undefined,
+			clineAccountId: undefined,
+		})
+	} catch (error) {
+		Logger.error("[SdkAuthService] Failed to clear legacy Cline credentials:", error)
+	}
 }
 
 // ---------------------------------------------------------------------------

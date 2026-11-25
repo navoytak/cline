@@ -311,26 +311,24 @@ describe("buildSessionConfig", () => {
 		expect(mocks.providerSettingsManager.getProviderSettings).toHaveBeenCalledWith("cline")
 	})
 
-	it("preserves explicit ClinePass API keys from state before OAuth storage", () => {
+	it("ignores stale ClinePass API keys from legacy state", () => {
 		mocks.providerSettingsManager.getProviderSettings.mockReturnValue({
 			provider: "cline",
 			auth: { accessToken: "workos:stored-token" },
 		} as any)
 
-		expect(resolveApiKey("cline-pass", { clineApiKey: "workos:configured-token" } as any)).toBe("workos:configured-token")
-		expect(mocks.providerSettingsManager.getProviderSettings).not.toHaveBeenCalled()
+		expect(resolveApiKey("cline-pass", { clineApiKey: "workos:stale-token" } as any)).toBe("workos:stored-token")
+		expect(mocks.providerSettingsManager.getProviderSettings).toHaveBeenCalledWith("cline")
 	})
 
-	it("preserves explicit Cline API keys from state before OAuth storage", () => {
+	it("ignores stale Cline API keys from legacy state", () => {
 		mocks.providerSettingsManager.getProviderSettings.mockReturnValue({
 			provider: "cline",
 			auth: { accessToken: "workos:stored-token" },
 		} as any)
 
-		expect(resolveApiKey("cline", { clineApiKey: "workos:configured-cline-token" } as any)).toBe(
-			"workos:configured-cline-token",
-		)
-		expect(mocks.providerSettingsManager.getProviderSettings).not.toHaveBeenCalled()
+		expect(resolveApiKey("cline", { clineApiKey: "workos:stale-cline-token" } as any)).toBe("workos:stored-token")
+		expect(mocks.providerSettingsManager.getProviderSettings).toHaveBeenCalledWith("cline")
 	})
 
 	it("resolves OpenAI Codex through the shared OAuth provider registry", async () => {

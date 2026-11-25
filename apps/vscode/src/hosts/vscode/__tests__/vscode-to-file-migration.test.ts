@@ -288,7 +288,7 @@ describe("vscode-to-file-migration", () => {
 			result.secretsCount.should.equal(0)
 		})
 
-		it("should continue even if a single secret read fails", async () => {
+		it("should not write the sentinel if a single secret read fails", async () => {
 			const mockCtx = createMockVSCodeContext()
 			mockCtx._secretsStore.set("openRouterApiKey", "or-key-123")
 
@@ -301,11 +301,15 @@ describe("vscode-to-file-migration", () => {
 				return origGet(key)
 			}
 
-			const result = await exportVSCodeStorageToSharedFiles(mockCtx as any, storageContext)
+			try {
+				await exportVSCodeStorageToSharedFiles(mockCtx as any, storageContext)
+				throw new Error("Should have thrown")
+			} catch (error: any) {
+				error.message.should.equal("One or more VSCode secrets failed to migrate")
+			}
 
-			result.migrated.should.be.true()
-			result.secretsCount.should.equal(1)
-			storageContext.secrets.get("openRouterApiKey")!.should.equal("or-key-123")
+			;(storageContext.globalState.get("__vscodeMigrationVersion") === undefined).should.be.true()
+			;(storageContext.secrets.get("openRouterApiKey") === undefined).should.be.true()
 		})
 	})
 
