@@ -173,4 +173,24 @@ describe("buildEffectiveProviderConfig", () => {
 			auth: { accessToken: "cline-access-token", accountId: "account-123" },
 		})
 	})
+
+	it("prefers Cline OAuth credentials from providers.json over stale state", async () => {
+		const { buildEffectiveProviderConfig } = await import("./effective-config")
+		mocks.setProviderSettings({
+			cline: {
+				provider: "cline",
+				auth: { accessToken: "workos:current-token", accountId: "current-account" },
+			},
+		})
+		mocks.setApiConfiguration({
+			clineApiKey: "workos:stale-token",
+			clineAccountId: "stale-account",
+		})
+
+		expect(buildEffectiveProviderConfig(parseProviderId("cline"))).toEqual({
+			providerId: parseProviderId("cline"),
+			apiKey: "workos:current-token",
+			auth: { accessToken: "workos:current-token", accountId: "current-account" },
+		})
+	})
 })

@@ -18,7 +18,54 @@ const GRPC_TOOLS_PROTOC = path.join(require.resolve("grpc-tools"), "../bin", isW
 // Legacy compatibility: some older/local Windows setups provision protoc into tmp-protoc.
 // Prefer that path when present, but fall back to the grpc-tools bundled binary used by CI/npm installs.
 const LEGACY_WINDOWS_PROTOC = path.resolve("tmp-protoc/bin/protoc.exe")
-const PROTOC = isWindows && fsSync.existsSync(LEGACY_WINDOWS_PROTOC) ? LEGACY_WINDOWS_PROTOC : GRPC_TOOLS_PROTOC
+
+function resolveWindowsProtoc() {
+	if (!isWindows) {
+		return undefined
+	}
+
+	if (process.env.PROTOC && fsSync.existsSync(process.env.PROTOC)) {
+		return process.env.PROTOC
+	}
+
+	try {
+		const paths = execFileSync("where.exe", ["protoc.exe"], { encoding: "utf8" })
+			.split(/\r?\n/)
+			.map((candidate) => candidate.trim())
+			.filter(Boolean)
+		const systemProtoc = paths.find((candidate) => fsSync.existsSync(candidate))
+		if (systemProtoc) {
+			return systemProtoc
+		}
+	} catch {
+		// Fall through to package-manager and bundled paths.
+	}
+
+	const wingetPackages = process.env.LOCALAPPDATA
+		? path.join(process.env.LOCALAPPDATA, "Microsoft", "WinGet", "Packages")
+		: undefined
+	if (wingetPackages && fsSync.existsSync(wingetPackages)) {
+		for (const entry of fsSync.readdirSync(wingetPackages, { withFileTypes: true })) {
+			if (!entry.isDirectory() || !entry.name.toLowerCase().startsWith("google.protobuf")) {
+				continue
+			}
+			const candidate = path.join(wingetPackages, entry.name, "bin", "protoc.exe")
+			if (fsSync.existsSync(candidate)) {
+				return candidate
+			}
+		}
+	}
+
+	return undefined
+}
+
+const WINDOWS_PROTOC = resolveWindowsProtoc()
+const PROTOC =
+	isWindows && WINDOWS_PROTOC
+		? WINDOWS_PROTOC
+		: isWindows && fsSync.existsSync(LEGACY_WINDOWS_PROTOC)
+			? LEGACY_WINDOWS_PROTOC
+			: GRPC_TOOLS_PROTOC
 
 if (!fsSync.existsSync(PROTOC)) {
 	const windowsHint = isWindows

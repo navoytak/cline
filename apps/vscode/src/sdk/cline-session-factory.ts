@@ -321,12 +321,6 @@ export function getDefaultModelIdForProvider(providerId: string): string | undef
 export function resolveApiKey(providerId: string, config: ApiConfiguration): string | undefined {
 	const authHandler = getProviderAuthHandler(providerId)
 	if (authHandler) {
-		const keyField = PROVIDER_API_KEY_MAP[providerId]
-		const configuredApiKey = keyField ? (config[keyField] as string | undefined)?.trim() : undefined
-		if (configuredApiKey) {
-			return configuredApiKey
-		}
-
 		// Read from providers.json via the shared ProviderSettingsManager. This is
 		// intentionally keyed by the requested provider so SDK auth metadata can
 		// resolve shared storage (e.g. cline-pass -> cline) without VS Code

@@ -367,7 +367,8 @@ export function buildEffectiveProviderConfig(providerId: ProviderId): EffectiveP
 	const stateConfig = readStateConfig(providerId, StateManager.get().getApiConfiguration())
 	const merged: Partial<ConfigParts> = {}
 
-	assignIfDefined(merged, "apiKey", stateConfig.apiKey ?? providerSettings.apiKey)
+	const oauthApiKey = providerSettings.auth?.accessToken
+	assignIfDefined(merged, "apiKey", oauthApiKey ?? stateConfig.apiKey ?? providerSettings.apiKey)
 	assignIfDefined(merged, "baseUrl", stateConfig.baseUrl ?? providerSettings.baseUrl)
 	assignIfDefined(merged, "apiLine", stateConfig.apiLine ?? providerSettings.apiLine)
 	assignIfDefined(merged, "headers", stateConfig.headers ?? providerSettings.headers)
@@ -376,7 +377,7 @@ export function buildEffectiveProviderConfig(providerId: ProviderId): EffectiveP
 	// fields as a fallback for old installs, but let providers.json win when both exist.
 	assignIfDefined(merged, "aws", mergeAws(stateConfig.aws, providerSettings.aws))
 	assignIfDefined(merged, "gcp", mergeGcp(stateConfig.gcp, providerSettings.gcp))
-	assignIfDefined(merged, "auth", stateConfig.auth ?? providerSettings.auth)
+	assignIfDefined(merged, "auth", providerSettings.auth ?? stateConfig.auth)
 	assignIfDefined(merged, "extras", mergeExtras(providerSettings.extras, stateConfig.extras))
 
 	return { providerId, ...merged }

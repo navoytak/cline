@@ -130,14 +130,9 @@ export async function exportVSCodeStorageToSharedFiles(
 				result.globalStateCount++
 			}
 
-			// Add sentinel to batch
-			globalStateBatch[MIGRATION_VERSION_KEY] = CURRENT_MIGRATION_VERSION
-
-			// Write all global state in one operation
-			storage.globalState.setBatch(globalStateBatch)
-
 			// Batch secrets
 			const secretsBatch: Record<string, string> = {}
+			let secretReadFailed = false
 			for (const key of SecretKeys) {
 				try {
 					const vscodeValue = await vscodeContext.secrets.get(key)
@@ -155,11 +150,19 @@ export async function exportVSCodeStorageToSharedFiles(
 					result.secretsCount++
 				} catch (error) {
 					Logger.error(`[Migration] Failed to read secret '${key}' from VSCode:`, error)
+					secretReadFailed = true
 				}
 			}
 
-			// Write all secrets in one operation
+			if (secretReadFailed) {
+				throw new Error("One or more VSCode secrets failed to migrate")
+			}
+
+			// Write secrets first, then set the sentinel. If either write fails, the
+			// migration remains retryable on the next startup.
 			storage.secrets.setBatch(secretsBatch)
+			globalStateBatch[MIGRATION_VERSION_KEY] = CURRENT_MIGRATION_VERSION
+			storage.globalState.setBatch(globalStateBatch)
 		}
 
 		// ─── 2. Migrate workspace state (if needed) ────────────────────
